@@ -3,15 +3,20 @@
 Modified: Jan 22, 2020
 
 @author: g.gurkan
-ver 3 Update: Serial is replaced by Bluetooth Lib.
+ver 3: Update: Serial is replaced by Bluetooth Lib.
 # revision, 7 Jun 2020: Filter data, rather than calculated slope vector!
 # revision, 7 Jun 2020: Import both filtered and raw slope vector!
+
+
+# revision, 24 Aug 2020: Monitor a single Estimated Angle value! (-> gui_motion_ver4.py)
+# revision, 24 Aug 2020: Visual feedback for proper sensor orientation (x-axis acc levels)! (-> gui_motion_ver4.py)
+
 """
 
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import gui_motion_ver2
+import gui_motion_ver4
 import sys
 import numpy as np
 from numpy.linalg import norm
@@ -22,7 +27,7 @@ import glob
 import configSensors as cs
 import scipy.signal as sp
 
-class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
+class Kafes(QMainWindow,gui_motion_ver4.Ui_MainWindow):
     x_curves=['','','','','']
     y_curves=['','','','','']
     z_curves=['','','','','']   
@@ -48,6 +53,7 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
         self.buttonOpenfile.clicked.connect(self.openFile)
         self.buttonApplyFilter.clicked.connect(self.applyFilter)
         self.buttonSetFilename.clicked.connect(self.setFileName)
+        #self.buttonCorrect.clicked.connect(self.setNeutral)
         self.accplotx.plotItem.sigRangeChanged.connect(self.syncAnalysisLimits)
         self.buttonExport.clicked.connect(self.exportData)
         
@@ -69,6 +75,14 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
         self.LedON.fill(Qt.green)
         self.ledConnection.setPixmap(self.LedOFF)
         self.ledRecording.setPixmap(self.LedOFF)
+        
+        
+        
+        pixmap=QPixmap(u'gui_level.jpg')
+        self.level_image.setPixmap(pixmap)
+        pixmap=QPixmap(u'gui_bodyframe.jpg')
+        self.frame_image.setPixmap(pixmap)
+        #print pixmap
         
    
     def preparePlot(self,item,title,ylabel,yunits):
@@ -136,6 +150,8 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
                 self.buttonSetFilename.setEnabled(False)
                 self.ledRecording.setPixmap(self.LedON)
                 self.clearRawPlots()
+                self.tabWidget.setCurrentIndex(0)
+                self.tab_levels.setDisabled(True)
         else:
             RECORDING=False
             time.sleep(.5)
@@ -147,6 +163,7 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
             self.buttonConnect.setEnabled(True)
             self.buttonSetFilename.setEnabled(True)
             self.ledRecording.setPixmap(self.LedOFF)
+            self.tab_levels.setDisabled(False)
             
                 
     def defaultFilename(self):
@@ -180,7 +197,7 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
         if self.file2Open[0] !='':
             try:
                 self.filedata = np.loadtxt(str(self.file2Open[0]),dtype='int',delimiter=',',skiprows=0)
-                self.plotData(self.filedata)
+                self.plotData(self.filedata,offline_mode=True)
                 self.groupFilter.setEnabled(True)
                 self.buttonExport.setEnabled(False)
                 
@@ -199,27 +216,49 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
             self.accploty.plotItem.vb.setRange(yRange=rangey)
             self.accplotz.plotItem.vb.setRange(yRange=rangey)
 
-    def plotData(self,data):
+    def plotData(self,data,offline_mode=False):
         global params
-      
+             
         self.AnalysisSamples = len(data)
         self.tlabel = np.arange(0,len(data)/200.,1/200.)
         data_corrected = params.gain*(data.T-params.offset)
         self.AnalysisData = data_corrected.T.copy()
         self.govde =self.AnalysisData[:,:3].copy()
         self.kafa = self.AnalysisData[:,3:].copy()
+        """
+
+        self.govdeXY=self.govde.copy()
+        self.govdeXY[:,2]=0
+        self.govdeYZ=self.govde.copy()
+        self.govdeYZ[:,0]=0
+        
+        self.kafaXY=self.kafa.copy()
+        self.kafaXY[:,2]=0
+        self.kafaYZ=self.kafa.copy()
+        self.kafaYZ[:,0]=0
+        """
         #self.slopes=map(lambda x,y: -np.rad2deg(np.arcsin(norm(np.cross(x,y))/(norm(x)*norm(y)))),self.govde,self.kafa)
         self.slopes=map(lambda x,y: np.rad2deg(np.arcsin(norm(np.cross(x,y))/(norm(x)*norm(y))))*np.sign(np.cross(x,y)[0,0]),self.govde,self.kafa)
+       
+
         
         self.clearAnglePlot()
+        self.degLabel.setText("NA")
         self.angleplot.plot(self.tlabel,self.slopes,pen='b')
         self.buttonApplyFilter.setEnabled(True)
+        
+        if not(offline_mode):
+            angle_mean = np.mean(self.slopes,axis=0)
+            self.degLabel.setText(format("%.0f" % angle_mean))
+            self.buttonApplyFilter.setEnabled(False)
+              
+        
 
         if not(RECORDING):
             self.xRange= (0,self.AnalysisSamples/200.)
             self.yRangeAng=(np.min(self.slopes)-10,np.max(self.slopes)+10)
-            self.angleplot.plotItem.vb.setRange(xRange=self.xRange,yRange=self.yRangeAng)
-            
+            #self.angleplot.plotItem.vb.setRange(xRange=self.xRange,yRange=self.yRangeAng)
+            self.angleplot.plotItem.vb.setRange(yRange=(-90,90))
             self.clearRawPlots()
             self.AnalysisXcurves = []
             self.AnalysisYcurves = []
@@ -228,13 +267,37 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
             self.accplotx.addLegend(size=(3,15),offset=(-5,5))
             self.accplotx.plotItem.vb.setRange(xRange=self.xRange)
             for c in range(2):
-                self.AnalysisXcurves.append(self.accplotx.plot(pen=self.colors[c],width=3,name=names[c]))
-                self.AnalysisYcurves.append(self.accploty.plot(pen=self.colors[c]))
-                self.AnalysisZcurves.append(self.accplotz.plot(pen=self.colors[c]))
+                if self.tabWidget.currentIndex()==1:
+                    self.AnalysisXcurves.append(self.accplotx.plot(pen=self.colors[c],width=3,name=names[c]))
+                    self.AnalysisYcurves.append(self.accploty.plot(pen=self.colors[c],width=3))
+                    self.AnalysisZcurves.append(self.accplotz.plot(pen=self.colors[c],width=3))
+                    
+                    self.AnalysisXcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c])))
+                    self.AnalysisYcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c+1])))
+                    self.AnalysisZcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c+2])))
                 
-                self.AnalysisXcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c])))
-                self.AnalysisYcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c+1])))
-                self.AnalysisZcurves[c].setData(self.tlabel,np.squeeze(np.asarray(self.AnalysisData[:,3*c+2])))
+        # UPDATE SENSOR LEVEL PROGRESS BARS if not RECORDING and FOCUSED
+                
+        if (self.tabWidget.currentIndex()==2) and not(RECORDING) and not(offline_mode):
+                    xtorso = np.mean(np.squeeze(np.asarray(self.AnalysisData[:,0])),axis=0) 
+                    if xtorso >0:
+                        self.torso_Xp.setValue(int(xtorso*1000))
+                        self.torso_Xn.setValue(0)
+                    else:
+                        self.torso_Xn.setValue(int(-1*xtorso*1000))
+                        self.torso_Xp.setValue(0)
+                    
+                    xhead = np.mean(np.squeeze(np.asarray(self.AnalysisData[:,3])),axis=0) 
+                    if xhead >0:
+                        self.head_Xp.setValue(int(xhead*1000))
+                        self.head_Xn.setValue(0)
+                    else:
+                        self.head_Xn.setValue(int(-1*xhead*1000))
+                        self.head_Xp.setValue(0)
+                        
+                    
+                    
+                    
         
             
     def clearRawPlots(self):
@@ -288,6 +351,16 @@ class Kafes(QMainWindow,gui_motion_ver2.Ui_MainWindow):
                 self.statusbar.showMessage('Export complete...')
             except:
                 self.statusbar.showMessage('Export failed...' + sys.exc_info()[0])
+                
+    def rollMatrix(self,angle):
+        roll = np.deg2rad(angle)
+        return np.matrix([[1, 0, 0],[0, np.cos(roll), np.sin(roll)],[0, -np.sin(roll), np.cos(roll)]])
+        
+    def setNeutral(self):
+        self.kafa= (self.rollMatrix(int(self.rollAngle.text()))*self.kafa.T).T
+        self.slopes=map(lambda x,y: np.rad2deg(np.arcsin(norm(np.cross(x,y))/(norm(x)*norm(y))))*np.sign(np.cross(x,y)[0,0]),self.govde,self.kafa)
+        self.clearAnglePlot()
+        self.angleplot.plot(self.tlabel,self.slopes,pen='b')
     
 
 class threadSerial(QThread):
