@@ -1,5 +1,7 @@
 # PyTHang
-PyTHang: An open-source system for real-time and ambulatory monitoring of head-torso angle
+PyTHang: An open-source wearable sensor system for real time monitoring of head-torso angle for
+ambulatory applications
+
 
 **Files**
 - ***Bluetooth_and_Adxl345.ino***: To be embedded to Arduino (Nano)
