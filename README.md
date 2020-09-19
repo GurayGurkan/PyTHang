@@ -1,4 +1,4 @@
-# PyTHang
+# PyTHang (Paper under Review!)
 
 PyTHang: An open-source wearable sensor system for real time monitoring of head-torso angle for
 ambulatory applications
