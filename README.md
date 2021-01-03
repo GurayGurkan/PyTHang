@@ -1,4 +1,4 @@
-# PyTHang (Paper under Review!)
+# PyTHang (Published)
 
 PyTHang: An open-source wearable sensor system for real time monitoring of head-torso angle for
 ambulatory applications
@@ -15,5 +15,5 @@ This work is submitted to a journal and currently under review.
 For now, if you want to cite, please use
 
 Guray Gurkan, "PyTHang: An open-source wearable sensor system for real time monitoring of head-torso angle for
-ambulatory applications", Github/Guraygurkan/PyTHang, 2020
+ambulatory applications", Github/Guraygurkan/PyTHang, in Comput. Methods Biomech Biomed Engin., 2020, doi: 10.1080/10255842.2020.1864822
 
