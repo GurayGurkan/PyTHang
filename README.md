@@ -14,6 +14,5 @@ For suggestions and questions, please e-mail to: **guraygurkan@istanbul.edu.tr**
 
 For now, if you want to cite, please use
 
-Guray Gurkan, "PyTHang: An open-source wearable sensor system for real time monitoring of head-torso angle for
-ambulatory applications", Github/Guraygurkan/PyTHang, in Comput. Methods Biomech Biomed Engin., 2020, doi: 10.1080/10255842.2020.1864822
+Güray Gürkan, **PyTHang: an open-source wearable sensor system for real-time monitoring of head-torso angle for ambulatory applications**, *Computer Methods in Biomechanics and Biomedical Engineering*, 24:9, 1003-1018, **DOI: 10.1080/10255842.2020.1864822**
 
