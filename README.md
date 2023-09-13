@@ -10,7 +10,7 @@ ambulatory applications
 - ***gui_motion_ver4.py***:	GUI Python file by **pyuic.exe** from QtDesigner's *.ui* file.
 - ***main_motion_ver3.py***:	Main Python file that you should run (Please update MAC address as your Bluetooth Module's MAC)
 
-This work is submitted to a journal and currently under review.
+For suggestions and questions, please e-mail to: **guraygurkan@istanbul.edu.tr**.
 
 For now, if you want to cite, please use
 
